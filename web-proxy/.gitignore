@@ -1,0 +1,4 @@
+node_modules/
+proxy_cache/
+tmp/
+*.log
