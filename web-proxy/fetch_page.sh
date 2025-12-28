@@ -2,9 +2,9 @@
 
 # === CONFIGURARE ===
 # Directorul unde se montează tmpfs (trebuie să existe și să fie limitat ca spațiu)
-CACHE_DIR="/mnt/proxy_cache"
+CACHE_DIR="$HOME/proxy_cache"
 # Director pentru link-uri simbolice (cerință proiect pentru vizibilitate/temp)
-TMP_DIR="$(pwd)/tmp/proxy_temp_copy"
+TMP_DIR="$HOME/proxy_temp_copy"
 
 # Creare directoare necesare
 mkdir -p "$CACHE_DIR" "$TMP_DIR"
