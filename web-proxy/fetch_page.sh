@@ -2,15 +2,17 @@
  
 # === CONFIG ===
 # 1. Locația principală de cache (specificată de utilizator, ex: pe /mnt)
+
 CACHE_DIR="$(pwd)/proxy_cache"
- 
-# 2. Locația temporară (simulând tmpfs, de obicei /tmp)
 TMP_DIR="$(pwd)/tmp/proxy_temp_copy"
  
 # Creare directoare daca nu exista
 mkdir -p "$CACHE_DIR"
 mkdir -p "$TMP_DIR"
  
+
+mkdir -p "$CACHE_DIR" "$TMP_DIR"
+
 URL="$1"
 if [ -z "$URL" ]; then
     echo "Error: no URL provided"
@@ -18,6 +20,8 @@ if [ -z "$URL" ]; then
 fi
  
 # Generam nume de fisier pe baza hash-ului URL-ului
+[ -z "$URL" ] && exit 1
+
 FILENAME=$(echo -n "$URL" | md5sum | awk '{print $1}').html
  
 # Calea finală (Cache-ul persistent)
@@ -53,6 +57,16 @@ cp "$CACHE_FILEPATH" "$TMP_FILEPATH"
 if [ $? -ne 0 ]; then
     echo "[Proxy] WARNING: Could not copy file to temporary location ($TMP_DIR). Continue anyway."
     # Nu ieșim din script, deoarece fișierul este deja salvat în CACHE_DIR.
+CACHE_FILE="$CACHE_DIR/$FILENAME"
+TMP_LINK="$TMP_DIR/$FILENAME"
+
+
+# CACHE HIT
+if [ -f "$CACHE_FILE" ]; then
+    echo "[Proxy] CACHE HIT" >&2
+    ln -sf "$CACHE_FILE" "$TMP_LINK"
+    echo "$CACHE_FILE"
+    exit 0
 fi
  
 echo "[Proxy] File copied to temporary location: $TMP_FILEPATH"
@@ -60,4 +74,25 @@ echo ""
  
 # Pentru ieșire, returnăm calea finală din cache
 echo "$CACHE_FILEPATH"
+
+
+# CACHE MISS
+echo "[Proxy] CACHE MISS" >&2
+
+# Creează fișier gol + link local
+touch "$CACHE_FILE"
+ln -sf "$CACHE_FILE" "$TMP_LINK"
+
+# Pornește wget în background
+wget -q -O "$CACHE_FILE" "$URL" &
+
+WGET_PID=$!
+
+# Așteaptă finalizarea scrierii fișierului
+inotifywait -e close_write "$CACHE_FILE" >/dev/null
+
+wait $WGET_PID
+
+echo "[Proxy] Download complete, serving from cache" >&2
+echo "$CACHE_FILE"
 exit 0
