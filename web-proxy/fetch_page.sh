@@ -1,9 +1,5 @@
 #!/bin/bash
-
 CACHE_DIR="/mnt/proxy_cache"
-TMP_DIR="/mnt/proxy_temp_copy"
-
-mkdir -p "$CACHE_DIR" "$TMP_DIR"
 
 URL="$1"
 if [ -z "$URL" ]; then
@@ -13,7 +9,6 @@ fi
 
 FILENAME=$(echo -n "$URL" | md5sum | awk '{print $1}').html
 CACHE_FILE="$CACHE_DIR/$FILENAME"
-TMP_LINK="$TMP_DIR/$FILENAME"
 
 clean_lru() {
     local THRESHOLD=85 
@@ -38,7 +33,7 @@ if [ -f "$CACHE_FILE" ]; then
 
     touch -a "$CACHE_FILE"
     
-    ln -sf "$CACHE_FILE" "$TMP_LINK"
+    ln -sf "$CACHE_FILE"
     
     echo "$CACHE_FILE"
     exit 0
@@ -49,7 +44,7 @@ echo "[Proxy] CACHE MISS pentru $URL" >&2
 clean_lru
 
 touch "$CACHE_FILE"
-ln -sf "$CACHE_FILE" "$TMP_LINK"
+ln -sf "$CACHE_FILE"
 
 wget -q -O "$CACHE_FILE" "$URL" &
 WGET_PID=$!
